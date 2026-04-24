@@ -14,14 +14,14 @@ import java.util.List;
 
 public class QuizSubmitter {
 
-    private static final String SUBMIT_URL = "https://devapigw.vidalhealthtpa.com/srm-quiz-task/quiz/submit";
-
     private final String regNo;
+    private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper mapper;
 
-    public QuizSubmitter(String regNo) {
+    public QuizSubmitter(String regNo, String baseUrl) {
         this.regNo = regNo;
+        this.baseUrl = baseUrl;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -45,7 +45,7 @@ public class QuizSubmitter {
         System.out.println("Payload:\n" + body);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(SUBMIT_URL))
+                .uri(URI.create(baseUrl + "/quiz/submit"))
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))

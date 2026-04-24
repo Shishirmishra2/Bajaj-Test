@@ -1,26 +1,38 @@
 package com.quiz;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 import java.util.List;
 
 public class Main {
 
-    private static final String REG_NO = "RA2311047010171";
-    private static final int TOTAL_POLLS = 10;
-    private static final long POLL_DELAY_MS = 5000;
-
     public static void main(String[] args) {
+        Properties config = new Properties();
+        try (FileInputStream fis = new FileInputStream("config.properties")) {
+            config.load(fis);
+        } catch (IOException e) {
+            System.err.println("Could not load config.properties. Ensure it exists.");
+            System.exit(1);
+        }
+
+        String regNo = config.getProperty("reg.no");
+        String baseUrl = config.getProperty("api.base.url");
+        int totalPolls = 10;
+        long pollDelayMs = 5000;
+
         System.out.println("==============================================");
         System.out.println("  Quiz Leaderboard Builder");
-        System.out.println("  regNo : " + REG_NO);
-        System.out.println("  polls : " + TOTAL_POLLS + " (5s apart)");
+        System.out.println("  regNo : " + regNo);
+        System.out.println("  polls : " + totalPolls + " (5s apart)");
         System.out.println("==============================================\n");
 
-        QuizPoller poller = new QuizPoller(REG_NO);
+        QuizPoller poller = new QuizPoller(regNo, baseUrl);
         ScoreAggregator aggregator = new ScoreAggregator();
-        QuizSubmitter submitter = new QuizSubmitter(REG_NO);
+        QuizSubmitter submitter = new QuizSubmitter(regNo, baseUrl);
 
-        for (int i = 0; i < TOTAL_POLLS; i++) {
-            System.out.printf("%n[Poll %d/%d]%n", i, TOTAL_POLLS - 1);
+        for (int i = 0; i < totalPolls; i++) {
+            System.out.printf("%n[Poll %d/%d]%n", i, totalPolls - 1);
 
             try {
                 PollResponse response = poller.poll(i);
@@ -31,10 +43,10 @@ public class Main {
                 System.exit(1);
             }
 
-            if (i < TOTAL_POLLS - 1) {
+            if (i < totalPolls - 1) {
                 System.out.println("  Waiting 5s before next poll...");
                 try {
-                    Thread.sleep(POLL_DELAY_MS);
+                    Thread.sleep(pollDelayMs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.err.println("Interrupted during poll delay. Exiting.");

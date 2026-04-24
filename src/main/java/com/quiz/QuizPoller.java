@@ -10,16 +10,17 @@ import java.time.Duration;
 
 public class QuizPoller {
 
-    private static final String BASE_URL = "https://devapigw.vidalhealthtpa.com/srm-quiz-task";
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 2000;
 
     private final String regNo;
+    private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper mapper;
 
-    public QuizPoller(String regNo) {
+    public QuizPoller(String regNo, String baseUrl) {
         this.regNo = regNo;
+        this.baseUrl = baseUrl;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -27,7 +28,7 @@ public class QuizPoller {
     }
 
     public PollResponse poll(int pollIndex) {
-        String url = BASE_URL + "/quiz/messages?regNo=" + regNo + "&poll=" + pollIndex;
+        String url = baseUrl + "/quiz/messages?regNo=" + regNo + "&poll=" + pollIndex;
         Exception lastException = null;
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {

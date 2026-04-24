@@ -4,3 +4,4 @@ out/
 .gemini/
 maven.zip
 lib/
+config.properties
