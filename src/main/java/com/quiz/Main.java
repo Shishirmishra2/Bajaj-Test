@@ -1,85 +1,54 @@
 package com.quiz;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
 import java.util.List;
 
 public class Main {
+    private static final String REG_NO = "RA2311047010171";
 
     public static void main(String[] args) {
-        Properties config = new Properties();
-        try (FileInputStream fis = new FileInputStream("config.properties")) {
-            config.load(fis);
-        } catch (IOException e) {
-            System.err.println("Could not load config.properties. Ensure it exists.");
-            System.exit(1);
-        }
+        System.out.println("Starting Quiz Leaderboard Builder for: " + REG_NO);
 
-        String regNo = config.getProperty("reg.no");
-        String baseUrl = config.getProperty("api.base.url");
-        int totalPolls = 10;
-        long pollDelayMs = 5000;
-
-        System.out.println("==============================================");
-        System.out.println("  Quiz Leaderboard Builder");
-        System.out.println("  regNo : " + regNo);
-        System.out.println("  polls : " + totalPolls + " (5s apart)");
-        System.out.println("==============================================\n");
-
-        QuizPoller poller = new QuizPoller(regNo, baseUrl);
+        QuizPoller poller = new QuizPoller(REG_NO);
         ScoreAggregator aggregator = new ScoreAggregator();
-        QuizSubmitter submitter = new QuizSubmitter(regNo, baseUrl);
+        QuizSubmitter submitter = new QuizSubmitter(REG_NO);
 
-        for (int i = 0; i < totalPolls; i++) {
-            System.out.printf("%n[Poll %d/%d]%n", i, totalPolls - 1);
-
+        for (int i = 0; i < 10; i++) {
+            System.out.println("\nPoll " + i + " of 9...");
             try {
                 PollResponse response = poller.poll(i);
                 aggregator.process(response);
-            } catch (RuntimeException e) {
-                System.err.println("FATAL: " + e.getMessage());
-                System.err.println("Aborting — not all polls completed.");
-                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Error during poll: " + e.getMessage());
+                return;
             }
 
-            if (i < totalPolls - 1) {
-                System.out.println("  Waiting 5s before next poll...");
+            if (i < 9) {
                 try {
-                    Thread.sleep(pollDelayMs);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    System.err.println("Interrupted during poll delay. Exiting.");
-                    System.exit(1);
+                    return;
                 }
             }
         }
 
         List<LeaderboardEntry> leaderboard = aggregator.buildLeaderboard();
 
-        System.out.println("\n========== DEDUPLICATION SUMMARY ==========");
-        System.out.println("Total events received : " + aggregator.getTotalEventsReceived());
-        System.out.println("Duplicates skipped    : " + aggregator.getTotalEventsDuplicate());
-        System.out.println("Unique events counted : " + aggregator.getTotalEventsAccepted());
+        System.out.println("\n--- Summary ---");
+        System.out.println("Total: " + aggregator.getTotalEventsReceived());
+        System.out.println("Duplicates: " + aggregator.getTotalEventsDuplicate());
+        System.out.println("Accepted: " + aggregator.getTotalEventsAccepted());
 
-        System.out.println("\n========== LEADERBOARD ==========");
-        System.out.printf("%-5s %-20s %s%n", "Rank", "Participant", "Total Score");
-        System.out.println("-".repeat(40));
-        int rank = 1;
-        for (LeaderboardEntry entry : leaderboard) {
-            System.out.printf("%-5d %-20s %d%n", rank++, entry.getParticipant(), entry.getTotalScore());
+        System.out.println("\n--- Leaderboard ---");
+        for (int i = 0; i < leaderboard.size(); i++) {
+            LeaderboardEntry e = leaderboard.get(i);
+            System.out.println((i + 1) + ". " + e.getParticipant() + ": " + e.getTotalScore());
         }
-        System.out.println("-".repeat(40));
-        System.out.println("Grand Total: " + aggregator.grandTotal());
 
         try {
             submitter.submit(leaderboard);
         } catch (Exception e) {
-            System.err.println("Submit failed: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
+            System.err.println("Failed to submit: " + e.getMessage());
         }
-
-        System.out.println("\nDone.");
     }
 }

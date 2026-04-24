@@ -1,4 +1,0 @@
-# Template for Quiz Application Configuration
-# Copy this to config.properties and fill in your details
-reg.no=YOUR_REGISTRATION_NUMBER
-api.base.url=https://devapigw.vidalhealthtpa.com/srm-quiz-task
